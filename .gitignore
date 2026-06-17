@@ -1,0 +1,6 @@
+# Nunca deve existir aqui, mas por via das dúvidas:
+.env
+token.json
+client_secret*.json
+*.pyc
+__pycache__/
