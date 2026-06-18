@@ -2709,6 +2709,8 @@ function Equipe({ data, onJumpToTable }) {
 
 // ─── DETAIL DRAWER ────────────────────────────────────────────────────
 function DetailDrawer({ os, allData, tecnicos = [], onClose, onSwitchOS, onRefresh }) {
+  const isStatic = window.location.protocol === 'file:' || window.location.hostname.includes('github.io');
+
   vUseEffect(() => {
     function onKey(e) { if (e.key === 'Escape') onClose(); }
     window.addEventListener('keydown', onKey);
@@ -2739,19 +2741,24 @@ function DetailDrawer({ os, allData, tecnicos = [], onClose, onSwitchOS, onRefre
     const statusInicial = os.etapaBpms || os.status || 'em_aberto';
     setEdStatus(statusInicial);
     setEdTrilha(os.trilha || trilhaDeStatus(statusInicial) || 'os_chegou');
-    fetch('/api/os/imagens/' + encodeURIComponent(os.num_os || os.id))
-      .then(r => r.json())
-      .then(d => {
-        const arr = (d && d.imagens) ? d.imagens : [];
-        if (arr.length > 0) setImgs(arr);
-        else if (os.imagem_local) setImgs([os.imagem_local]);
-        else setImgs([]);
-      })
-      .catch(() => { setImgs(os.imagem_local ? [os.imagem_local] : []); });
-    fetch('/api/os/aprovacoes/' + encodeURIComponent(os.num_os || os.id))
-      .then(r => r.json())
-      .then(d => setAprovacoes((d && d.aprovacoes) ? d.aprovacoes : []))
-      .catch(() => setAprovacoes([]));
+    if (isStatic) {
+      setImgs([]);
+      setAprovacoes([]);
+    } else {
+      fetch('/api/os/imagens/' + encodeURIComponent(os.num_os || os.id))
+        .then(r => r.json())
+        .then(d => {
+          const arr = (d && d.imagens) ? d.imagens : [];
+          if (arr.length > 0) setImgs(arr);
+          else if (os.imagem_local) setImgs([os.imagem_local]);
+          else setImgs([]);
+        })
+        .catch(() => { setImgs(os.imagem_local ? [os.imagem_local] : []); });
+      fetch('/api/os/aprovacoes/' + encodeURIComponent(os.num_os || os.id))
+        .then(r => r.json())
+        .then(d => setAprovacoes((d && d.aprovacoes) ? d.aprovacoes : []))
+        .catch(() => setAprovacoes([]));
+    }
   }, [_osKey]);
 
   function resetZoom(scope) {
@@ -2902,7 +2909,7 @@ function DetailDrawer({ os, allData, tecnicos = [], onClose, onSwitchOS, onRefre
                  const img = e.currentTarget.querySelector('.os-zoom-img');
                  if (img) { img.dataset.dragging = '0'; img.style.cursor = 'grab'; }
                }}>
-            {(imgs.length > 0 || os.imagem_local) ? (
+            {(!isStatic && (imgs.length > 0 || os.imagem_local)) ? (
               <img className="os-zoom-img" data-scale="1" data-tx="0" data-ty="0" data-dragging="0"
                 src={`/api/os/imagem/${imgs.length > 0 ? imgs[imgIdx] : os.imagem_local}`}
                 style={{maxWidth:'100%', maxHeight:'100%', objectFit:'contain', transformOrigin:'center center', cursor:'grab', display:'block', userSelect:'none', transform:'scale(1) translate(0px,0px)'}}
@@ -2948,15 +2955,15 @@ function DetailDrawer({ os, allData, tecnicos = [], onClose, onSwitchOS, onRefre
                 style={{width:'100%', height:'100%', border:'none', minHeight:600}}
                 title={`PDF da OS ${os.id}`}/>
             ) : null}
-            <div style={{display: (imgs.length > 0 || os.imagem_local || os.link_pdf) ? 'none' : 'flex', flexDirection:'column', alignItems:'center', gap:12, color:'var(--muted)', padding:40}}>
+            <div style={{display: (!isStatic && (imgs.length > 0 || os.imagem_local) || os.link_pdf) ? 'none' : 'flex', flexDirection:'column', alignItems:'center', gap:12, color:'var(--muted)', padding:40}}>
               <span style={{fontSize:48}}>📄</span>
-              <span style={{fontSize:13}}>Imagem não disponível</span>
-              {os.link_drive && <a href={os.link_drive} target="_blank" rel="noreferrer" style={{fontSize:12, color:'var(--accent)'}}>Abrir pasta no Drive ↗</a>}
+              <span style={{fontSize:13}}>{isStatic ? 'Imagem disponível apenas no sistema local' : 'Imagem não disponível'}</span>
+              {os.link_drive && <a href={os.link_drive} target="_blank" rel="noreferrer" style={{fontSize:13, color:'var(--accent)', marginTop:8}}>🖼 Abrir imagem no Drive ↗</a>}
             </div>
           </div>
 
           {/* DIREITA — Campos editáveis */}
-          <div key={os.id} style={{flex:'1 1 35%', padding:'20px 24px', overflowY:'auto'}}>
+          <div key={os.id} style={{flex:'1 1 35%', minWidth:0, padding:'20px 24px', overflowY:'auto', minHeight:400}}>
             {/* TRILHA DE APROVAÇÃO — visível a todos */}
             {(() => {
               // Caminhos da Trilha da O.S (mesma ordem do kanban)
