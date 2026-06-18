@@ -1179,9 +1179,6 @@ tr.os-nova:hover { background: #dbeafe !important; }
 <body>
 <div id="root"></div>
 
-<!-- Dados estáticos — carregados pelo GitHub Pages quando não há servidor Flask -->
-<script src="dados_os.js" onerror="window.DADOS_OS=window.DADOS_OS||[]"></script>
-
 <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
@@ -1375,6 +1372,16 @@ const SUPERVISORS = [
   { id: 'paulo',   name: 'Paulo Mares',  initials: 'PM', specialties: ['hidraulica','gases'],         area: 'Setores críticos (UTI/CC/PS)',     status: 'ativo' },
   { id: 'carlos',  name: 'Carlos Prado', initials: 'CP', specialties: ['eletrica','cabista'],         area: 'Áreas técnicas + Diálise/Hemod.',   status: 'reuniao' },
   { id: 'walter',  name: 'Walter André', initials: 'WA', specialties: ['civil','marcenaria','pintura','transporte'], area: 'Internação · prédio dos andares',  status: 'ferias' },
+];
+
+// Lista fixa de técnicos — fallback quando /api/tecnicos não responde
+const TECNICOS_FIXOS = [
+  'Alessandro Vieira', 'André Novaes', 'Antonio Bacame', 'Antonio Faiao',
+  'Christian Barbosa', 'Claudio Marcos', 'Eduardo Marques', 'Eugenio Guerra',
+  'Ewerton', 'Francisco de Assis', 'Francisco Matias', 'Gilson Soares',
+  'Jacinto Estevam', 'Jadson Alves', 'Lucas Felipe', 'Matheus Henrique',
+  'Milton de Souza', 'Rai Lucas', 'Robério Rodrigues', 'Victor Mariano',
+  'Wescley Silva',
 ];
 
 const TECHNICIANS = [
@@ -2854,7 +2861,8 @@ function DetailDrawer({ os, allData, tecnicos = [], onClose, onSwitchOS, onRefre
         <div className="drawer-body" style={{display:'flex', gap:0, padding:0}}>
           {/* ESQUERDA — Imagem da OS com Pan (arrastar) + Zoom (scroll) */}
           <div style={{flex:'1 1 65%', borderRight:'1px solid var(--border)', background:'var(--surface-2)',
-                       overflow:'hidden', position:'relative', minHeight:400}}
+                       overflow:'hidden', position:'relative', minHeight:400,
+                       display:'flex', alignItems:'center', justifyContent:'center'}}
                onWheel={(e) => {
                  const img = e.currentTarget.querySelector('.os-zoom-img');
                  if (!img) return;
@@ -2896,7 +2904,7 @@ function DetailDrawer({ os, allData, tecnicos = [], onClose, onSwitchOS, onRefre
             {(imgs.length > 0 || os.imagem_local) ? (
               <img className="os-zoom-img" data-scale="1" data-tx="0" data-ty="0" data-dragging="0"
                 src={`/api/os/imagem/${imgs.length > 0 ? imgs[imgIdx] : os.imagem_local}`}
-                style={{maxWidth:'100%', maxHeight:'100%', objectFit:'contain', transformOrigin:'top center', cursor:'grab', display:'block', userSelect:'none', transform:'scale(1) translate(0px,0px)'}}
+                style={{maxWidth:'100%', maxHeight:'100%', objectFit:'contain', transformOrigin:'center center', cursor:'grab', display:'block', userSelect:'none', transform:'scale(1) translate(0px,0px)'}}
                 draggable="false"
                 onLoad={(e) => { e.target.dataset.scale='1'; e.target.dataset.tx='0'; e.target.dataset.ty='0'; }}
                 onError={(e) => {
@@ -3108,15 +3116,13 @@ function DetailDrawer({ os, allData, tecnicos = [], onClose, onSwitchOS, onRefre
               </div>
               <div>
                 <label style={{fontSize:11, color:'var(--muted)', display:'block', marginBottom:4}}>Executante</label>
-                <select id="ed-colab" defaultValue={os.executor || ''} style={{width:'100%', padding:'7px 10px', border:'1px solid var(--border)', borderRadius:6, fontSize:13, background:'var(--surface)', color:'var(--text)'}}>
-                  <option value="">— selecione —</option>
-                  <optgroup label="Técnicos">
-                    {tecnicos.map(t => <option key={t} value={t}>{t}</option>)}
-                  </optgroup>
-                  <optgroup label="Supervisão">
-                    {SUPERVISORS.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
-                  </optgroup>
-                </select>
+                <input id="ed-colab" list="lista-colaboradores" defaultValue={os.executor || ''}
+                  placeholder="Digite o nome..."
+                  style={{width:'100%', padding:'7px 10px', border:'1px solid var(--border)', borderRadius:6, fontSize:13}}/>
+                <datalist id="lista-colaboradores">
+                  {[...(tecnicos.length ? tecnicos : TECNICOS_FIXOS), ...SUPERVISORS.map(s => s.name)]
+                    .map(n => <option key={n} value={n}/>)}
+                </datalist>
               </div>
               <div>
                 <label style={{fontSize:11, color:'var(--muted)', display:'block', marginBottom:4}}>Supervisor</label>
@@ -6446,11 +6452,9 @@ function App() {
         .catch(e => console.warn('refreshOS fetch error:', e));
     }
     window.__refreshOS = refreshOS;
-    // Só ativa o polling automático se há servidor Flask (não em GitHub Pages)
-    const isStatic = window.location.protocol === 'file:' || window.location.hostname.includes('github.io');
-    const interval = isStatic ? null : setInterval(refreshOS, 10000);
-    if (!isStatic) refreshOS(); // roda imediatamente ao montar (só com servidor)
-    return () => { if (interval) clearInterval(interval); delete window.__refreshOS; };
+    const interval = setInterval(refreshOS, 10000);
+    refreshOS(); // roda imediatamente ao montar
+    return () => { clearInterval(interval); delete window.__refreshOS; };
   }, []);
 
   // Carrega OS reais do servidor
@@ -6463,13 +6467,7 @@ function App() {
         }
         setLoadingOS(false);
       })
-      .catch(() => {
-        // Modo estático (GitHub Pages): usa dados do dados_os.js incluído no HTML
-        if (window.DADOS_OS && window.DADOS_OS.length) {
-          try { setOsReais(window.DADOS_OS.map(mapOS)); } catch(e) { console.error('mapOS static:', e); }
-        }
-        setLoadingOS(false);
-      });
+      .catch(() => setLoadingOS(false));
   }, []);
 
   function jumpToTable(filt) {
