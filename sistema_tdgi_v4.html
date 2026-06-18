@@ -2909,9 +2909,9 @@ function DetailDrawer({ os, allData, tecnicos = [], onClose, onSwitchOS, onRefre
                  const img = e.currentTarget.querySelector('.os-zoom-img');
                  if (img) { img.dataset.dragging = '0'; img.style.cursor = 'grab'; }
                }}>
-            {(!isStatic && (imgs.length > 0 || os.imagem_local)) ? (
+            {(isStatic ? os.thumb_url : (imgs.length > 0 || os.imagem_local)) ? (
               <img className="os-zoom-img" data-scale="1" data-tx="0" data-ty="0" data-dragging="0"
-                src={`/api/os/imagem/${imgs.length > 0 ? imgs[imgIdx] : os.imagem_local}`}
+                src={isStatic ? os.thumb_url : `/api/os/imagem/${imgs.length > 0 ? imgs[imgIdx] : os.imagem_local}`}
                 style={{maxWidth:'100%', maxHeight:'100%', objectFit:'contain', transformOrigin:'center center', cursor:'grab', display:'block', userSelect:'none', transform:'scale(1) translate(0px,0px)'}}
                 draggable="false"
                 onLoad={(e) => { e.target.dataset.scale='1'; e.target.dataset.tx='0'; e.target.dataset.ty='0'; }}
@@ -2955,10 +2955,10 @@ function DetailDrawer({ os, allData, tecnicos = [], onClose, onSwitchOS, onRefre
                 style={{width:'100%', height:'100%', border:'none', minHeight:600}}
                 title={`PDF da OS ${os.id}`}/>
             ) : null}
-            <div style={{display: (!isStatic && (imgs.length > 0 || os.imagem_local) || os.link_pdf) ? 'none' : 'flex', flexDirection:'column', alignItems:'center', gap:12, color:'var(--muted)', padding:40}}>
+            <div style={{display: (isStatic ? os.thumb_url : (imgs.length > 0 || os.imagem_local)) || os.link_pdf ? 'none' : 'flex', flexDirection:'column', alignItems:'center', gap:12, color:'var(--muted)', padding:40}}>
               <span style={{fontSize:48}}>📄</span>
-              <span style={{fontSize:13}}>{isStatic ? 'Imagem disponível apenas no sistema local' : 'Imagem não disponível'}</span>
-              {os.link_drive && <a href={os.link_drive} target="_blank" rel="noreferrer" style={{fontSize:13, color:'var(--accent)', marginTop:8}}>🖼 Abrir imagem no Drive ↗</a>}
+              <span style={{fontSize:13}}>Imagem não disponível</span>
+              {os.link_drive && <a href={os.link_drive} target="_blank" rel="noreferrer" style={{fontSize:13, color:'var(--accent)', marginTop:8}}>🖼 Abrir no Drive ↗</a>}
             </div>
           </div>
 
@@ -6439,6 +6439,7 @@ function mapOS(o, i) {
     servico_executado: o.servico_executado || '',
     drive_img_id: o.drive_img_id || '',
     link_drive: o.link_drive || (o.drive_img_id ? `https://drive.google.com/file/d/${o.drive_img_id}/view` : ''),
+    thumb_url: o.drive_img_id ? `https://drive.google.com/thumbnail?id=${o.drive_img_id}&sz=w1600` : '',
     link_pdf: o.link_pdf || '',
     imagem_local: o.imagem_local || '', etapaBpms: st,
     selos: Array.isArray(o.selos) ? o.selos : [],
