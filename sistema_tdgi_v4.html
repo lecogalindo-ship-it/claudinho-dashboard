@@ -6033,7 +6033,24 @@ const { useState: progUseState, useEffect: progUseEffect, useRef: progUseRef } =
 
 const MOTOR_URL = window.location.origin || 'http://localhost:8080';
 
-function Programador() {
+function ProgramadorOffline() {
+  return (
+    <div style={{display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'60vh', gap:16, color:'var(--muted)', textAlign:'center', padding:40}}>
+      <span style={{fontSize:52}}>🤖</span>
+      <div style={{fontSize:18, fontWeight:700, color:'var(--text)'}}>Chat Claudinho</div>
+      <div style={{fontSize:14, maxWidth:420, lineHeight:1.6}}>
+        O chat só funciona no sistema local (com o servidor Flask rodando).<br/>
+        Acesse <b>http://localhost:8080</b> no seu computador para usar o Claudinho.
+      </div>
+      <div style={{fontSize:12, color:'var(--muted-2)', marginTop:8}}>
+        Este link público é somente para consulta de OS.
+      </div>
+    </div>
+  );
+}
+
+function ProgramadorReal() {
+
   const [msgs, setMsgs] = progUseState([
     { who: 'ia', t: agora(), text: '👋 Motor conectado! Pode perguntar sobre OS, técnicos, setores, programação ou qualquer coisa da TDGI.' }
   ]);
@@ -6365,6 +6382,11 @@ function Programador() {
       </div>
     </div>
   );
+}
+
+function Programador() {
+  const isStatic = window.location.protocol === 'file:' || window.location.hostname.includes('github.io');
+  return isStatic ? <ProgramadorOffline/> : <ProgramadorReal/>;
 }
 
 Object.assign(window, { Agenda, Altas, Importacao, Planilhas, Programador });
