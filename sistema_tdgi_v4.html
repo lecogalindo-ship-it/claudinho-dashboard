@@ -1179,6 +1179,7 @@ tr.os-nova:hover { background: #dbeafe !important; }
 <body>
 <div id="root"></div>
 
+<script src="dados_os.js" onerror="window.DADOS_OS=window.DADOS_OS||[]"></script>
 <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
@@ -6439,8 +6440,11 @@ function App() {
     document.documentElement.dataset.density = t.density;
   }, [t.accent, t.density]);
 
-  // Auto-atualiza a cada 10 segundos + expõe window.__refreshOS para chamar de fora
+  const isStatic = window.location.protocol === 'file:' || window.location.hostname.includes('github.io');
+
+  // Auto-atualiza a cada 10 segundos (desligado no GitHub Pages)
   appUseEffect(() => {
+    if (isStatic) return;
     function refreshOS() {
       fetch('/api/os')
         .then(r => r.json())
@@ -6453,12 +6457,19 @@ function App() {
     }
     window.__refreshOS = refreshOS;
     const interval = setInterval(refreshOS, 10000);
-    refreshOS(); // roda imediatamente ao montar
+    refreshOS();
     return () => { clearInterval(interval); delete window.__refreshOS; };
   }, []);
 
-  // Carrega OS reais do servidor
+  // Carrega OS reais do servidor (ou do dados_os.js estático)
   appUseEffect(() => {
+    if (isStatic) {
+      if (window.DADOS_OS && window.DADOS_OS.length) {
+        try { setOsReais(window.DADOS_OS.map(mapOS)); } catch(e) { console.error('mapOS error:', e); }
+      }
+      setLoadingOS(false);
+      return;
+    }
     fetch('/api/os')
       .then(r => r.json())
       .then(d => {
@@ -6467,7 +6478,12 @@ function App() {
         }
         setLoadingOS(false);
       })
-      .catch(() => setLoadingOS(false));
+      .catch(() => {
+        if (window.DADOS_OS && window.DADOS_OS.length) {
+          try { setOsReais(window.DADOS_OS.map(mapOS)); } catch(e) {}
+        }
+        setLoadingOS(false);
+      });
   }, []);
 
   function jumpToTable(filt) {
